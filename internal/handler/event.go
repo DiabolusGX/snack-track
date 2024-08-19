@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/diabolusgx/snack-track/internal/env"
 	"github.com/diabolusgx/snack-track/internal/event"
@@ -20,6 +22,15 @@ func RegisterEventAPIHandler(api *slack.Client) {
 	}
 
 	http.HandleFunc("/slack/event", func(w http.ResponseWriter, r *http.Request) {
+		// panic recovery
+		defer func() {
+			if r := recover(); r != nil {
+				debug.PrintStack()
+				log.Printf("[SlackEventHandler] Recovered from panic: %v\n", r)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		}()
+
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -28,24 +39,24 @@ func RegisterEventAPIHandler(api *slack.Client) {
 
 		sv, err := slack.NewSecretsVerifier(r.Header, signingSecret)
 		if err != nil {
-			fmt.Println("[ERROR] Failed to create secrets verifier:", err)
+			fmt.Println("[SlackEventHandler] Failed to create secrets verifier:", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		if _, err := sv.Write(body); err != nil {
-			fmt.Println("[ERROR] Failed to write body:", err)
+			fmt.Println("[SlackEventHandler] Failed to write body:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		if err := sv.Ensure(); err != nil {
-			fmt.Println("[ERROR] Failed to ensure signature:", err)
+			fmt.Println("[SlackEventHandler] Failed to ensure signature:", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		eventsAPIEvent, err := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionNoVerifyToken())
 		if err != nil {
-			fmt.Println("[ERROR] Failed to parse event:", err)
+			fmt.Println("[SlackEventHandler] Failed to parse event:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -54,7 +65,7 @@ func RegisterEventAPIHandler(api *slack.Client) {
 			var r *slackevents.ChallengeResponse
 			err := json.Unmarshal([]byte(body), &r)
 			if err != nil {
-				fmt.Println("[ERROR] Failed to unmarshal challenge response:", err)
+				fmt.Println("[SlackEventHandler] Failed to unmarshal challenge response:", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -74,4 +85,6 @@ func RegisterEventAPIHandler(api *slack.Client) {
 		}
 		fmt.Println("[INFO] Unhandled event:", eventsAPIEvent.Type)
 	})
+
+	fmt.Println("[INFO] Event API handler registered")
 }

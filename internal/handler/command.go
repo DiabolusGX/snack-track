@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/diabolusgx/snack-track/internal/command"
 	"github.com/diabolusgx/snack-track/internal/env"
@@ -18,6 +20,15 @@ func RegisterCommandAPIHandler(api *slack.Client) {
 	}
 
 	http.HandleFunc("/slack/command", func(w http.ResponseWriter, r *http.Request) {
+		// panic recovery
+		defer func() {
+			if r := recover(); r != nil {
+				debug.PrintStack()
+				log.Printf("[SlackCommandHandler] Recovered from panic: %v\n", r)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		}()
+
 		verifier, err := slack.NewSecretsVerifier(r.Header, signingSecret)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -37,7 +48,7 @@ func RegisterCommandAPIHandler(api *slack.Client) {
 
 		executor, err := command.NewCommandExecutor(s)
 		if err != nil {
-			fmt.Println("[ERROR] Failed to create command executor:", err)
+			fmt.Println("[SlackCommandHandler] Failed to create command executor:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -45,9 +56,11 @@ func RegisterCommandAPIHandler(api *slack.Client) {
 		ctx := context.Background()
 		err = executor.Execute(ctx, api, s, w)
 		if err != nil {
-			fmt.Println("[ERROR] Failed to execute command:", s.Command, err)
+			fmt.Println("[SlackCommandHandler] Failed to execute command:", s.Command, err)
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(fmt.Sprintf("unexpected error: %s", err.Error())))
 		}
 	})
+
+	fmt.Println("[INFO] Command API handler registered")
 }

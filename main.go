@@ -27,6 +27,7 @@ func main() {
 
 	handler.RegisterEventAPIHandler(api)
 	handler.RegisterCommandAPIHandler(api)
+	handler.RegisterWebhookHandler(api)
 
 	fmt.Println("[INFO] Server listening")
 	http.ListenAndServe(":2929", nil)
