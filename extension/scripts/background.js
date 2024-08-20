@@ -102,7 +102,9 @@ async function pollRunningOrders() {
     });
 
     // append new orders to `runningOrders`
-    for (const order of newOrders) {
+    const finalRunningOrders = [...newOrders, ...updatedOrders];
+    runningOrders = [];
+    for (const order of finalRunningOrders) {
         runningOrders.push({
             hashId: order.hashId,
             status: order.status,
@@ -126,18 +128,18 @@ chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) =
 
 async function notifyOnSlack(order) {
     const webhookUrl = "https://snack-track.diabolus.me/webhook/order-update";
-    const payload = { order };
+    const payload = JSON.stringify({ order });
 
     const requestOptions = {
         method: 'POST',
+        mode: 'no-cors',
         headers: {
             'Content-Type': 'application/json',
         },
         body: payload,
     };
 
-    const response = await fetchWrrapper(webhookUrl, requestOptions);
-    console.log(response);
+    return fetchWrrapper(webhookUrl, requestOptions);
 }
 
 async function fetchOrders() {
