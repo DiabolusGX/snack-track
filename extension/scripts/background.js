@@ -3,6 +3,10 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.action.setBadgeText({
         text: "OFF",
     });
+
+    chrome.storage.local.set({ runningOrders: [] }, function () {
+        console.log(`Running orders reset`);
+    });
 });
 
 chrome.action.onClicked.addListener(async (tab) => {
@@ -97,18 +101,21 @@ async function pollRunningOrders() {
             console.log(`New order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
             const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
             showBasicNotification("new-order", "Snack track 🚚", message);
+            notifyOnSlack(order);
         }
         return isNewOrder;
     });
 
     // append new orders to `runningOrders`
     const finalRunningOrders = [...newOrders, ...updatedOrders];
-    runningOrders = [];
-    for (const order of finalRunningOrders) {
-        runningOrders.push({
-            hashId: order.hashId,
-            status: order.status,
-        });
+    if (finalRunningOrders.length) {
+        runningOrders = [];
+        for (const order of finalRunningOrders) {
+            runningOrders.push({
+                hashId: order.hashId,
+                status: order.status,
+            });
+        }
     }
 
     chrome.storage.local.set({ runningOrders }, function () {
