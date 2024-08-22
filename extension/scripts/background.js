@@ -79,7 +79,7 @@ async function pollRunningOrders() {
         if (!runningOrder) {
             return false;
         }
-        return runningOrder?.status !== order.status;
+        return runningOrder?.status !== order.status || runningOrder?.label !== order.deliveryDetails?.deliveryLabel;
     });
     for (const order of updatedOrders) {
         console.log(`Updated order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
@@ -114,6 +114,7 @@ async function pollRunningOrders() {
             runningOrders.push({
                 hashId: order.hashId,
                 status: order.status,
+                label: order.deliveryDetails?.deliveryLabel,
             });
         }
     }
