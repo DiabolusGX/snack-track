@@ -1,11 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Snack track</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      select,
+      input {
+        margin-bottom: 10px;
+      }
+      button {
+        margin-right: 10px;
+      }
+    </style>
   </head>
-
   <body>
-    <div id="root"></div>
+    <h1>Snack track</h1>
+    <form id="extensionForm">
+      <label for="addressIds">Address IDs:</label>
+      <select id="addressIds" multiple>
+        <!-- Options will be populated by JavaScript -->
+      </select>
+
+      <h2>Time Slots</h2>
+      <div id="timeSlots">
+        <!-- Time slot inputs will be added here -->
+      </div>
+      <button type="button" id="addTimeSlot">Add Time Slot</button>
+
+      <button type="submit">Submit</button>
+    </form>
+
+    <script type="module" src="scripts/popup.js"></script>
   </body>
 </html>
