@@ -11,7 +11,7 @@ import (
 type EchoCommand struct {
 }
 
-func (e *EchoCommand) Execute(ctx context.Context, api *slack.Client, command slack.SlashCommand, w http.ResponseWriter) error {
+func (e *EchoCommand) Execute(ctx context.Context, api *slack.Client, command *slack.SlashCommand, w http.ResponseWriter) error {
 	params := &slack.Msg{Text: command.Text}
 	b, err := json.Marshal(params)
 	if err != nil {

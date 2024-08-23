@@ -12,13 +12,17 @@ import (
 )
 
 type CommandExecutor interface {
-	Execute(ctx context.Context, api *slack.Client, command slack.SlashCommand, w http.ResponseWriter) error
+	Execute(ctx context.Context, api *slack.Client, command *slack.SlashCommand, w http.ResponseWriter) error
 }
 
 func NewCommandExecutor(s slack.SlashCommand) (CommandExecutor, error) {
 	switch s.Command {
 	case "/echo":
 		return &EchoCommand{}, nil
+	case "/st-token":
+		return &StToken{}, nil
+	case "/st-settings":
+		return &StSettings{}, nil
 	case "/track":
 		return &TrackCommand{}, nil
 	default:

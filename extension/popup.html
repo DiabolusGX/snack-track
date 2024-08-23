@@ -4,34 +4,41 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Snack track</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-      }
-      select,
-      input {
-        margin-bottom: 10px;
-      }
-      button {
-        margin-right: 10px;
-      }
-    </style>
+    <link rel="stylesheet" href="styles/popup.css" />
   </head>
   <body>
+    <div id="overlay"></div>
+    <div id="customAlert">
+      <p id="alertText"></p>
+      <button id="closeAlert">OK</button>
+    </div>
+
     <h1>Snack track</h1>
     <form id="extensionForm">
-      <label for="addressIds">Address IDs:</label>
-      <select id="addressIds" multiple>
+      <h3>Slack ID:</h3>
+      <!-- <label for="slackId">Slack ID:</label> -->
+      <input
+        type="text"
+        id="slackId"
+        name="slackId"
+        placeholder="Get your Slack ID using /st-token command"
+        required
+      />
+
+      <h3>Address IDs:</h3>
+      <!-- <label for="addressIds">Address IDs:</label> -->
+      <label for="addressIds"><i>(hold cmd/ctrl to select multiple)</i></label>
+      <select id="addressIds" name="addressIds[]" multiple>
         <!-- Options will be populated by JavaScript -->
       </select>
 
-      <h2>Time Slots</h2>
+      <h3>Time Slots</h3>
+      <button type="button" id="addTimeSlot">Add Time Slot</button>
       <div id="timeSlots">
         <!-- Time slot inputs will be added here -->
       </div>
-      <button type="button" id="addTimeSlot">Add Time Slot</button>
 
+      <hr />
       <button type="submit">Submit</button>
     </form>
 

@@ -54,7 +54,7 @@ func RegisterCommandAPIHandler(api *slack.Client) {
 		}
 
 		ctx := context.Background()
-		err = executor.Execute(ctx, api, s, w)
+		err = executor.Execute(ctx, api, &s, w)
 		if err != nil {
 			fmt.Println("[SlackCommandHandler] Failed to execute command:", s.Command, err)
 			w.Header().Set("Content-Type", "application/json")

@@ -33,9 +33,9 @@
         "type": "module"
     },
     "permissions": [
+        "activeTab",
         "alarms",
         "notifications",
-        "background",
         "storage",
         "cookies"
     ],

@@ -1,5 +1,12 @@
 package models
 
+type UpdateUserSettings struct {
+	SlackId    string   `json:"slackId"`
+	StartTime  []string `json:"startTime"`
+	EndTime    []string `json:"endTime"`
+	AddressIds []string `json:"addressIds"`
+}
+
 type OrderUpdate struct {
 	Order *ZomatoOrder `json:"order"`
 }

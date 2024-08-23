@@ -17,6 +17,7 @@ const (
 	SlackBotToken      = "SLACK_BOT_TOKEN"
 	SlackSigningSecret = "SLACK_SIGNING_SECRET"
 	MongoConnectionURI = "MONGO_CONNECTION_URI"
+	SecretKey          = "SECRET_KEY"
 
 	// global constants
 	MongoDatabaseName        = "snack-track"

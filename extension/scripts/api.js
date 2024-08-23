@@ -1,8 +1,13 @@
 export default {
     getAddresses,
     fetchOrders,
-    notifyOnSlack,
+    callWebhook,
+
+    orderUpdateEndpoint: "order-update",
+    userSettingsEndpoint: "user-settings",
 };
+
+const webhookHost = "http://snack-track.diabolus.me/webhook/";
 
 async function fetchOrders() {
     const zh = await getZomatoHeaders();
@@ -35,31 +40,25 @@ async function getAddresses() {
     return [
         {
             "id": 123,
-            "address": "Zomato, 2nd Floor, Tower 1",
-            "alias": "Work"
-        },
-        {
-            "id": 456,
-            "address": "My home",
-            "alias": "Home"
+            "address": "test address",
+            "display_title": "Work",
+            "display_subtitle": "here is work address",
         }
     ];
 }
 
-async function notifyOnSlack(order) {
-    const webhookUrl = "https://snack-track.diabolus.me/webhook/order-update";
-    const payload = JSON.stringify({ order });
+async function callWebhook(endpoint, payload) {
+    const payloadStr = JSON.stringify(payload);
 
     const requestOptions = {
         method: 'POST',
-        mode: 'no-cors',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: payload,
+        body: payloadStr,
     };
 
-    return fetchWrrapper(webhookUrl, requestOptions);
+    return fetchWrrapper(webhookHost + endpoint, requestOptions);
 }
 
 /******************** UTIL ********************/

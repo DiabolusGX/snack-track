@@ -58,6 +58,18 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 async function pollRunningOrders() {
+    const slackId = await new Promise((resolve, reject) => {
+        chrome.storage.local.get("snackTrackSlackId", (data) => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve(data.snackTrackSlackId);
+        });
+    });
+    if (!slackId) {
+        throw new Error("Slack ID not set. Please set it in the 'Snack track' extension.");
+    }
+
     const orders = await api.fetchOrders();
     if (orders.length == 0) {
         throw new Error("You have not placed any orders OR you are not logged in.");
@@ -87,7 +99,7 @@ async function pollRunningOrders() {
         console.log(`Updated order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
         const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
         await showBasicNotification("order-update", "Snack track 🚚", message);
-        await api.notifyOnSlack(order);
+        await api.callWebhook(api.orderUpdateEndpoint, { order });
 
         // if order is delivered, remove it from `runningOrders`
         if (!isRunningOrder(order)) {
@@ -103,7 +115,7 @@ async function pollRunningOrders() {
             console.log(`New order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
             const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
             showBasicNotification("new-order", "Snack track 🚚", message);
-            api.notifyOnSlack(order);
+            api.callWebhook(api.orderUpdateEndpoint, { order });
         }
         return isNewOrder;
     });

@@ -19,7 +19,7 @@ type TrackCommand struct {
 	To   string `mapstructure:"to"`
 }
 
-func (t *TrackCommand) Execute(ctx context.Context, api *slack.Client, command slack.SlashCommand, w http.ResponseWriter) error {
+func (t *TrackCommand) Execute(ctx context.Context, api *slack.Client, command *slack.SlashCommand, w http.ResponseWriter) error {
 	err := parseParams(command.Text, &t)
 	if err != nil {
 		return err
