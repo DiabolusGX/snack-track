@@ -30,7 +30,9 @@ func GetSlackMsgForSettings(user *models.User) string {
 		}
 	}
 
-	return "Here are your settings:\n" + channelMsg + addressMsg + timeMsg
+	defaultInfo := "\nTo update any of these settings, please use *Snack Track extension* in your browser (except for channel, which is updated by `/st-channel` command).\n"
+
+	return "Here are your settings:\n" + channelMsg + addressMsg + timeMsg + defaultInfo
 }
 
 func GetSlackIdFromHash(slackId string) (string, bool, error) {

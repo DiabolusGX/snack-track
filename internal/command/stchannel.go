@@ -59,6 +59,6 @@ func (t *StChannel) Execute(ctx context.Context, api *slack.Client, command *sla
 		return err
 	}
 
-	sendResponse(w, util.GetSlackMsgForSettings(user))
+	sendResponse(w, "Your channel has been set to <#"+command.ChannelID+">"+"\n\n"+util.GetSlackMsgForSettings(user))
 	return nil
 }
