@@ -23,6 +23,8 @@ func NewCommandExecutor(s slack.SlashCommand) (CommandExecutor, error) {
 		return &StToken{}, nil
 	case "/st-settings":
 		return &StSettings{}, nil
+	case "/st-channel":
+		return &StChannel{}, nil
 	case "/track":
 		return &TrackCommand{}, nil
 	default:

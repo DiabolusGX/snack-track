@@ -196,10 +196,6 @@ func (db *MongoDB) GetOne(ctx context.Context, collection string, filters Filter
 	r := c.FindOne(ctx, bson.M(m), findOptions)
 	err := r.Decode(result)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			log.Printf("Err. mongo Getone Decode: %s\n", err)
-			return nil
-		}
 		return err
 	}
 	return nil
@@ -479,10 +475,6 @@ func (db *MongoDB) FindOneAndUpdate(ctx context.Context, collection string, filt
 	r := c.FindOneAndUpdate(ctx, bson.M(f), update, op)
 	err := r.Decode(result)
 	if err != nil {
-		if err.Error() == mongo.ErrNoDocuments.Error() {
-			log.Printf("Err. mongo FindOneAndUpdate Decode: %s\n", err)
-			return nil
-		}
 		return err
 	}
 	return nil

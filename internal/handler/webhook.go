@@ -60,7 +60,7 @@ func RegisterWebhookHandler(api *slack.Client) {
 		// TODO: figure out user <> order mapping
 		userId := "test-user-id"
 
-		var user models.User
+		var user *models.User
 		filters := mongo.Filters{
 			{
 				Key:      "user_id",
@@ -182,6 +182,13 @@ func RegisterWebhookHandler(api *slack.Client) {
 			},
 		}
 		err = env.MongoClient().FindOneAndUpdate(ctx, env.MongoUsersCollectionName, filters, updates, &user)
+		if err == mongo.NoItemFound {
+			err = env.MongoClient().Insert(ctx, env.MongoUsersCollectionName, &models.User{
+				UserId:     slackId,
+				Schedule:   schedule,
+				AddressIds: updateUserSettings.AddressIds,
+			})
+		}
 		if err != nil {
 			log.Printf("[UserSettings] Failed to get user: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)

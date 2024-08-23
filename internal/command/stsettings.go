@@ -26,6 +26,10 @@ func (t *StSettings) Execute(ctx context.Context, api *slack.Client, command *sl
 		},
 	}
 	err := env.MongoClient().GetOne(ctx, env.MongoUsersCollectionName, filters, nil, &user)
+	if err == mongo.NoItemFound {
+		sendResponse(w, "You have not set up your SnackTrack settings yet.\nPlease use `/st-channel`, `/st-token` and Snack Track extension to get started.")
+		return nil
+	}
 	if err != nil {
 		log.Printf("[StSettings] Failed to get user: %v\n", err)
 		return err

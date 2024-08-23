@@ -48,6 +48,7 @@ func (t *TrackCommand) Execute(ctx context.Context, api *slack.Client, command *
 	fromStr := fromTime.Format(shared.ScheduleTimeFormat)
 	toStr := toTime.Format(shared.ScheduleTimeFormat)
 
+	newUser := false
 	var user *models.User
 	keyFilters := mongo.Filters{
 		{
@@ -58,16 +59,12 @@ func (t *TrackCommand) Execute(ctx context.Context, api *slack.Client, command *
 		},
 	}
 	err = env.MongoClient().GetOne(ctx, env.MongoUsersCollectionName, keyFilters, nil, &user)
-	if err != nil {
-		log.Printf("[ERROR] failed to get user from database, err: %s\n", err.Error())
-		return err
-	}
-
-	if user == nil {
+	if err == mongo.NoItemFound {
+		newUser = true
 		user = &models.User{
-			UserId:    command.UserID,
-			ChannelId: command.ChannelID,
-			TeamId:    command.TeamID,
+			UserId:     command.UserID,
+			ChannelId:  command.ChannelID,
+			TeamDomain: command.TeamDomain,
 			Schedule: []*models.Schedule{
 				{
 					From: fromStr,
@@ -80,7 +77,13 @@ func (t *TrackCommand) Execute(ctx context.Context, api *slack.Client, command *
 			log.Printf("[ERROR] failed to insert user to database, err: %s\n", err.Error())
 			return err
 		}
-	} else {
+	}
+	if err != nil {
+		log.Printf("[ERROR] failed to get user from database, err: %s\n", err.Error())
+		return err
+	}
+
+	if !newUser {
 		updates := mongo.Updates{
 			{
 				Key:            "schedule",

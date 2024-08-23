@@ -41,6 +41,8 @@ func (u UpdateOperator) ToString() string {
 	return string(u)
 }
 
+var NoItemFound = mongo.ErrNoDocuments
+
 const (
 	INT64        DataType = 1
 	STRING       DataType = 2
