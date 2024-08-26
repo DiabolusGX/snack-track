@@ -100,11 +100,6 @@ async function pollRunningOrders() {
         const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
         await showBasicNotification("order-update", "Snack track 🚚", message);
         await api.callWebhook(api.orderUpdateEndpoint, { order });
-
-        // if order is delivered, remove it from `runningOrders`
-        if (!isRunningOrder(order)) {
-            runningOrders = runningOrders?.filter(runningOrder => runningOrder.hashId !== order.hashId);
-        }
     }
 
     // identify new orders that are not present in `runningOrders` and `state` is non-terminal
@@ -122,9 +117,13 @@ async function pollRunningOrders() {
 
     // append new orders to `runningOrders`
     const finalRunningOrders = [...newOrders, ...updatedOrders];
-    if (finalRunningOrders.length) {
+
+    // filter final running orders to remove any orders that have reached terminal state
+    const filteredRunningOrders = finalRunningOrders.filter(order => isRunningOrder(order));
+
+    if (filteredRunningOrders.length) {
         runningOrders = [];
-        for (const order of finalRunningOrders) {
+        for (const order of filteredRunningOrders) {
             runningOrders.push({
                 hashId: order.hashId,
                 status: order.status,
