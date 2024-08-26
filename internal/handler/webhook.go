@@ -57,8 +57,25 @@ func RegisterWebhookHandler(api *slack.Client) {
 			return
 		}
 
-		// TODO: figure out user <> order mapping
-		userId := "test-user-id"
+		slackId := orderUpdate.SlackId
+		if slackId == "" {
+			log.Printf("[OrderUpdate] SlackId is empty\n")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// verify the slackId hash
+		userId, ok, err := util.GetSlackIdFromHash(slackId)
+		if err != nil {
+			log.Printf("[OrderUpdate] Failed to verify slackId hash: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !ok {
+			log.Printf("[OrderUpdate] SlackId hash verification failed\n")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 
 		var user *models.User
 		filters := mongo.Filters{

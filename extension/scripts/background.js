@@ -99,7 +99,7 @@ async function pollRunningOrders() {
         console.log(`Updated order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
         const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
         await showBasicNotification("order-update", "Snack track 🚚", message);
-        await api.callWebhook(api.orderUpdateEndpoint, { order });
+        await api.callWebhook(api.orderUpdateEndpoint, { order, slackId });
     }
 
     // identify new orders that are not present in `runningOrders` and `state` is non-terminal
@@ -110,7 +110,7 @@ async function pollRunningOrders() {
             console.log(`New order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
             const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
             showBasicNotification("new-order", "Snack track 🚚", message);
-            api.callWebhook(api.orderUpdateEndpoint, { order });
+            api.callWebhook(api.orderUpdateEndpoint, { order, slackId });
         }
         return isNewOrder;
     });

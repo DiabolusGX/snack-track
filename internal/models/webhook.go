@@ -8,7 +8,8 @@ type UpdateUserSettings struct {
 }
 
 type OrderUpdate struct {
-	Order *ZomatoOrder `json:"order"`
+	Order   *ZomatoOrder `json:"order"`
+	SlackId string       `json:"slackId"`
 }
 
 type ZomatoOrder struct {
