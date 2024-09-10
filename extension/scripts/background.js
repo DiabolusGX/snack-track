@@ -2,9 +2,7 @@ import api from './api.js';
 
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Snack track extension installed");
-    chrome.action.setBadgeText({
-        text: "OFF",
-    });
+    chrome.action.setBadgeText({ text: "OFF" });
 
     chrome.storage.local.set({ runningOrders: [] }, function () {
         console.log(`Running orders reset`);
@@ -21,26 +19,19 @@ chrome.action.onClicked.addListener(async (tab) => {
     });
 });
 
-// poll running orders every minute
+// Poll running orders every minute
 pollRunningOrders();
 chrome.alarms.create("pollRunningOrders", { periodInMinutes: 1 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
     console.log(`Alarm triggered for: ${alarm.name}`);
 
-    const text = await new Promise((resolve, reject) => {
-        chrome.action.getBadgeText({}, (text) => {
-            if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
-            }
-            resolve(text);
-        });
-    });
-    if (text === "OFF") {
-        return;
-    }
-
     try {
+        const text = await getBadgeTextAsync();
+        if (text === "OFF") {
+            return;
+        }
+
         switch (alarm.name) {
             case "pollRunningOrders":
                 await pollRunningOrders();
@@ -50,96 +41,58 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         }
     } catch (err) {
         console.error(err);
-        showBasicNotification("login-cta", "Snack track ❌", `${err.message}. Please login and enable the extension again.`, [{ title: "Login" }]);
-        await chrome.action.setBadgeText({
-            text: "OFF",
-        });
+        await showBasicNotification("login-cta", "Snack track ❌", `${err.message}. Please login and enable the extension again.`, [{ title: "Login" }]);
+        await chrome.action.setBadgeText({ text: "OFF" });
     }
 });
 
 async function pollRunningOrders() {
-    const slackId = await new Promise((resolve, reject) => {
-        chrome.storage.local.get("snackTrackSlackId", (data) => {
-            if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
-            }
-            resolve(data.snackTrackSlackId);
-        });
-    });
-    if (!slackId) {
-        throw new Error("Slack ID not set. Please set it in the 'Snack track' extension.");
-    }
+    const slackId = await getStorageValueAsync("snackTrackSlackId");
+    if (!slackId) throw new Error("Slack ID not set. Please set it in the 'Snack track' extension.");
 
     const orders = await api.fetchOrders();
-    if (orders.length == 0) {
-        throw new Error("You have not placed any orders OR you are not logged in.");
-    }
+    if (orders.length === 0) throw new Error("You have not placed any orders OR you are not logged in.");
 
-    let runningOrders = await new Promise((resolve, reject) => {
-        chrome.storage.local.get("runningOrders", (data) => {
-            if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
+    const runningOrders = await getStorageValueAsync("runningOrders") || [];
+
+    const updatedOrders = [];
+    const newOrders = [];
+
+    orders.forEach(order => {
+        const runningOrder = runningOrders.find(ro => ro.hashId === order.hashId);
+        if (runningOrder) {
+            if (runningOrder.status !== order.status || runningOrder.label !== order.deliveryDetails?.deliveryLabel) {
+                updatedOrders.push(order);
             }
-            resolve(data.runningOrders);
-        });
-    });
-    if (!runningOrders) {
-        runningOrders = [];
-    }
-
-    // check if `state` is changed for any running order
-    const updatedOrders = orders.filter(order => {
-        const runningOrder = runningOrders?.find(runningOrder => runningOrder.hashId === order.hashId);
-        if (!runningOrder) {
-            return false;
+        } else if (isRunningOrder(order)) {
+            newOrders.push(order);
         }
-        return runningOrder?.status !== order.status || runningOrder?.label !== order.deliveryDetails?.deliveryLabel;
     });
-    for (const order of updatedOrders) {
-        console.log(`Updated order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
+
+    for (const order of updatedOrders.concat(newOrders)) {
         const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
         await showBasicNotification("order-update", "Snack track 🚚", message);
         await api.callWebhook(api.orderUpdateEndpoint, { order, slackId });
     }
 
-    // identify new orders that are not present in `runningOrders` and `state` is non-terminal
-    const newOrders = orders.filter(order => {
-        const runningOrder = runningOrders?.find(runningOrder => runningOrder.hashId === order.hashId);
-        const isNewOrder = !runningOrder && isRunningOrder(order);
-        if (isNewOrder) {
-            console.log(`New order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
-            const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
-            showBasicNotification("new-order", "Snack track 🚚", message);
-            api.callWebhook(api.orderUpdateEndpoint, { order, slackId });
-        }
-        return isNewOrder;
+    const newAndUpdatedRunningOrders = [...newOrders, ...updatedOrders].filter(isRunningOrder);
+    const filteredRunningOrdersHashIds = newAndUpdatedRunningOrders.map(order => order.hashId);
+    const remainingRunningOrders = runningOrders.filter(ro => !filteredRunningOrdersHashIds.includes(ro.hashId));
+    
+
+    await chrome.storage.local.set({
+        runningOrders: [...remainingRunningOrders, ...newAndUpdatedRunningOrders.map(order => ({
+            hashId: order.hashId,
+            status: order.status,
+            label: order.deliveryDetails?.deliveryLabel,
+        }))].filter(Boolean)
     });
 
-    // append new orders to `runningOrders`
-    const finalRunningOrders = [...newOrders, ...updatedOrders];
-
-    // filter final running orders to remove any orders that have reached terminal state
-    const filteredRunningOrders = finalRunningOrders.filter(order => isRunningOrder(order));
-
-    if (filteredRunningOrders.length) {
-        runningOrders = [];
-        for (const order of filteredRunningOrders) {
-            runningOrders.push({
-                hashId: order.hashId,
-                status: order.status,
-                label: order.deliveryDetails?.deliveryLabel,
-            });
-        }
-    }
-
-    chrome.storage.local.set({ runningOrders }, function () {
-        console.log(`Running orders: ${JSON.stringify(runningOrders)}`);
-    });
+    console.log(`Running orders: ${JSON.stringify(finalRunningOrders)}`);
 }
 
 chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
     console.log(`Button clicked: ${notificationId}, buttonIndex: ${buttonIndex}`);
-
     if (notificationId === "login-cta") {
         chrome.tabs.create({ url: "https://www.zomato.com" });
     }
@@ -152,12 +105,41 @@ function isRunningOrder(order) {
 }
 
 function showBasicNotification(id, title, message, buttons = []) {
-    return chrome.notifications.create(id, {
-        type: "basic",
-        iconUrl: "../public/logo512.png",
-        title: title,
-        message: message,
-        buttons: buttons,
-        requireInteraction: true,
+    return new Promise((resolve, reject) => {
+        chrome.notifications.create(id, {
+            type: "basic",
+            iconUrl: "../public/logo512.png",
+            title,
+            message,
+            buttons,
+            requireInteraction: true,
+        }, (notificationId) => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve(notificationId);
+        });
+    });
+}
+
+function getBadgeTextAsync() {
+    return new Promise((resolve, reject) => {
+        chrome.action.getBadgeText({}, (text) => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve(text);
+        });
+    });
+}
+
+function getStorageValueAsync(key) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(key, (data) => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            resolve(data[key]);
+        });
     });
 }
