@@ -8,11 +8,11 @@ async function populateAddressIds() {
         addresses.forEach(addr => {
             const option = document.createElement('option');
             option.value = addr.id;
-            option.textContent = addr.display_title + ' ' + addr.display_subtitle;
+            option.textContent = addr.alias + ' - ' + addr.delivery_subzone_name;
             addressSelect.appendChild(option);
         });
     } catch (error) {
-        console.error('Error fetching addresses:', error);
+        console.log('Error fetching addresses:', error);
     }
 }
 

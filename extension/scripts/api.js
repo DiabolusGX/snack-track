@@ -36,15 +36,31 @@ async function fetchOrders() {
 }
 
 async function getAddresses() {
-    // TODO: make actual API request
-    return [
-        {
-            "id": 123,
-            "address": "test address",
-            "display_title": "Work",
-            "display_subtitle": "here is work address",
-        }
-    ];
+    const zh = await getZomatoHeaders();
+    const requestOptions = {
+        method: 'GET',
+        headers: zh,
+        redirect: 'follow'
+    };
+
+    const response = await fetchWrrapper(`https://www.zomato.com/webroutes/order/address`, requestOptions);
+    if (response === "") {
+        return {};
+    }
+
+    const addresses = JSON.parse(response)?.addresses || [];
+    console.log(JSON.parse(response));
+    console.log(addresses);
+
+    const formattedAddress = [];
+    addresses.forEach(addresse => {
+        formattedAddress.push({
+            id: addresse.id,
+            alias: addresse.alias,
+            delivery_subzone_name: addresse.delivery_subzone_name,
+        });
+    });
+    return formattedAddress;
 }
 
 async function callWebhook(endpoint, payload) {
