@@ -58,7 +58,7 @@ async function pollRunningOrders() {
     const updatedOrders = [];
     const newOrders = [];
 
-    orders.forEach(order => {
+    for (const order of orders) {
         const runningOrder = runningOrders.find(ro => ro.hashId === order.hashId);
         if (runningOrder) {
             if (runningOrder.status !== order.status || runningOrder.label !== order.deliveryDetails?.deliveryLabel) {
@@ -67,27 +67,30 @@ async function pollRunningOrders() {
         } else if (isRunningOrder(order)) {
             newOrders.push(order);
         }
-    });
+    }
 
-    for (const order of updatedOrders.concat(newOrders)) {
+    for (const order of updatedOrders) {
+        console.log(`Updated order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
         const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
         await showBasicNotification("order-update", "Snack track 🚚", message);
         await api.callWebhook(api.orderUpdateEndpoint, { order, slackId });
     }
+    for (const order of newOrders) {
+        console.log(`New order: ${order.orderId} ${order.hashId}, ${order.status}, ${JSON.stringify(order.deliveryDetails)}`);
+        const message = `[${order.orderId}] [${order.deliveryDetails?.deliveryLabel}] ${order.deliveryDetails?.deliveryLabel}`;
+        await showBasicNotification("new-order", "Snack track 🚚", message);
+        await api.callWebhook(api.orderUpdateEndpoint, { order, slackId });
+    }
 
-    const newAndUpdatedRunningOrders = [...newOrders, ...updatedOrders].filter(isRunningOrder);
-    const filteredRunningOrdersHashIds = newAndUpdatedRunningOrders.map(order => order.hashId);
-    const remainingRunningOrders = runningOrders.filter(ro => !filteredRunningOrdersHashIds.includes(ro.hashId));
-    
+    const updatedRunningOrders = updatedOrders.filter(isRunningOrder);
+    const remainingRunningOrders = [...newOrders, ...updatedRunningOrders];
+    const finalRunningOrders = remainingRunningOrders.map(order => ({
+        hashId: order.hashId,
+        status: order.status,
+        label: order.deliveryDetails?.deliveryLabel,
+    }));
 
-    await chrome.storage.local.set({
-        runningOrders: [...remainingRunningOrders, ...newAndUpdatedRunningOrders.map(order => ({
-            hashId: order.hashId,
-            status: order.status,
-            label: order.deliveryDetails?.deliveryLabel,
-        }))].filter(Boolean)
-    });
-
+    await chrome.storage.local.set({ runningOrders: finalRunningOrders });
     console.log(`Running orders: ${JSON.stringify(finalRunningOrders)}`);
 }
 
