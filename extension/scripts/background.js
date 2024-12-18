@@ -57,13 +57,16 @@ async function pollRunningOrders() {
 
     const updatedOrders = [];
     const newOrders = [];
+    const activeRunningOrders = [];
 
     for (const order of orders) {
         const runningOrder = runningOrders.find(ro => ro.hashId === order.hashId);
         if (runningOrder) {
             if (runningOrder.status !== order.status || runningOrder.label !== order.deliveryDetails?.deliveryLabel) {
                 updatedOrders.push(order);
+                continue
             }
+            activeRunningOrders.push(order);
         } else if (isRunningOrder(order)) {
             newOrders.push(order);
         }
@@ -83,7 +86,7 @@ async function pollRunningOrders() {
     }
 
     const updatedRunningOrders = updatedOrders.filter(isRunningOrder);
-    const remainingRunningOrders = [...newOrders, ...updatedRunningOrders];
+    const remainingRunningOrders = [...activeRunningOrders, ...newOrders, ...updatedRunningOrders];
     const finalRunningOrders = remainingRunningOrders.map(order => ({
         hashId: order.hashId,
         status: order.status,
